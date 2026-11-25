@@ -14,6 +14,7 @@ a vehicle finishing a leg in a region.
 flowchart TD
     A["Setup<br/>create_od_demand_matrix, build_vehicle_lists<br/>as_active_vehicles, build_departure_queue"]
     B{"Active or Waiting<br/>not empty?"}
+    B2{"events = max_events?"}
     C["Step 1: next event time<br/>next_departure_time, next_region_arrival_times_after<br/>t' = min(t_arr_k, t_dep_k)<br/>dt = t' - t"]
     D["Step 2: admit departures<br/>pop_departures_due_at, add_vehicles<br/>Waiting to Active"]
     E["Step 3: measure the network<br/>count_vehicles_per_subregion gives n_i<br/>_mfd_speed_from_accumulation gives v_i"]
@@ -24,8 +25,10 @@ flowchart TD
     J["End of episode<br/>end_episode<br/>return Completed, accumulation history"]
 
     A -->|"Active, Waiting"| B
-    B -->|"yes"| C
-    B -->|"no, or max_events reached"| J
+    B -->|"yes"| B2
+    B -->|"no"| J
+    B2 -->|"no"| C
+    B2 -->|"yes: stop, unfinished trips are not completed"| J
     C -->|"t, dt"| D
     D -->|"Active"| E
     E -->|"n_i, v_i"| F
@@ -61,26 +64,27 @@ flowchart TD
 ## 3. Routing decision at a region boundary
 
 Applied to each vehicle `k` whose leg has ended. HDVs follow the shortest path. CAVs ask the agent.
+If no agent is given (the baseline run), every vehicle follows the shortest path.
 
 ```mermaid
 flowchart TD
     A{"r(k) = Dest_k?"}
     B["mark_arrived_at_destination"]
-    C["Feasible set F<br/>get_feasible_next_regions_for_vehicle<br/>adjacent regions from which Dest_k is reachable"]
+    C["Feasible set F<br/>get_feasible_next_regions_for_vehicle<br/>1. adjacent regions of r(k)<br/>2. remove regions already visited (no-revisit rule)<br/>3. keep regions from which Dest_k is still reachable<br/>4. if none is left, drop rule 2"]
     D{"size of F"}
     E["h = the only element of F"]
-    F{"vehicle class"}
-    G["HDV: choose_hdv_next_region<br/>h = second region of Theta<br/>if h not in F, take the cheapest region in F"]
+    F{"vehicle k is a CAV<br/>and an agent is given?"}
+    G["Shortest-path routing: choose_hdv_next_region<br/>h is drawn from the path probabilities p over Theta<br/>p = 1 for the second region of Theta, so h = Theta_2<br/>if h is not in F, h = the cheapest region in F"]
     H["CAV: build_observation gives S<br/>choose_cav_next_region_with_agent<br/>agent.select_action(S, F) gives h"]
-    I["Set route toward h<br/>replace_remaining_route<br/>r(k) = h, new L_rem"]
+    I["Set route toward h<br/>replace_remaining_route<br/>r(k) = h<br/>new leg length L_rem for each region on the route:<br/>l_j if j is a transit region<br/>u * l_j if j = Dest_k, u drawn from U(0,1)"]
 
     A -->|"yes"| B
     A -->|"no"| C
     C -->|"F"| D
     D -->|"1"| E
     D -->|"2 or more"| F
-    F -->|"HDV: Theta, C, F"| G
-    F -->|"CAV: n_i, Dest_k, F"| H
+    F -->|"no: Theta, C, F"| G
+    F -->|"yes: n_i, Dest_k, F"| H
     E -->|"h"| I
     G -->|"h"| I
     H -->|"h"| I
@@ -106,7 +110,9 @@ If `F` is empty, no region is chosen and the vehicle is routed straight toward i
 | $v_{min}$ | `MIN_SPEED` | Speed floor, 0.5 m/s | m/s |
 | $r(k)$ | current region | Region vehicle $k$ currently occupies | region index |
 | $\mathit{Dest}_k$ | destination region | Destination of vehicle $k$ | region index |
-| $F$ | feasible regions | Legal next regions for vehicle $k$ | set |
+| $F$ | feasible regions | Legal next regions for vehicle $k$: adjacent, not yet visited, and from which $\mathit{Dest}_k$ is still reachable. If that leaves none, the not-yet-visited condition is dropped | set |
+| $l_j$ | region trip length | Mean distance travelled when crossing region $j$ | m |
+| $u$ | random fraction | Fraction of $l_j$ travelled in the destination region, $u \sim U(0,1)$ | none |
 | $S$ | `observation` | 28-dimensional CAV state: current region (7), destination (7), $n_i / n_{max,i}$ (7), action mask (7) | none |
 | $h$ | chosen region | Next region selected for vehicle $k$ | region index |
 | $R$ | event reward | Reward passed to the agent after each event, $-\Delta t \cdot N_{active}$ | veh·s |
@@ -126,7 +132,7 @@ If `F` is empty, no region is chosen and the vehicle is routed straight toward i
 | `build_region_cost_matrix` | `routing.py` | $n_i$, region parameters | $C$ |
 | `compute_dijkstra_routes` | `routing.py` | adjacency, $n_i$, $C$ | Shortest paths $\Theta$ per pair |
 | `advance_vehicles_and_route` | `simulation.py` | active vehicles, $t$, $\Delta t$, $v_i$, $n_i$ | Updated active vehicles |
-| `get_feasible_next_regions_for_vehicle` | `path_choice.py` | vehicle | $F$ |
+| `get_feasible_next_regions_for_vehicle` | `path_choice.py` | vehicle, visited regions | $F$ |
 | `choose_hdv_next_region` | `path_choice.py` | vehicle, $F$, paths | $h$ |
 | `build_observation` | `simulation.py` | vehicle, $n_i$, action mask | $S$ |
 | `choose_cav_next_region_with_agent` | `path_choice.py` | vehicle, $S$, $F$, agent | $h$ |

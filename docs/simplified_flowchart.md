@@ -22,9 +22,10 @@ flowchart TD
     F -->|"no"| G
 ```
 
-At a region boundary a vehicle picks its next region:
+At a region boundary a vehicle picks its next region from the feasible set $F$: adjacent regions it has not visited yet, from which its destination is still reachable.
 
 - **HDV:** takes the second region of the shortest path over the cost matrix $C_{ij} = T_i + T_j$, with $T_i = n_i / g_i$.
+- **No agent (baseline run):** every vehicle, CAV or HDV, follows the shortest path.
 - **CAV:** passes its state $S$ (current region, destination, densities $n_i / n_{max,i}$, legal moves) to the routing agent, which returns the next region.
 
 | Symbol | Meaning |
