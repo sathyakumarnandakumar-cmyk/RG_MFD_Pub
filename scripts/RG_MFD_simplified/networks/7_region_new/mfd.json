@@ -1,0 +1,19 @@
+{
+  "name": "7_region_new",
+  "description": "Alternative calibration on byte-identical data to 7_region. Critical accumulation is roughly halved (5572 -> 2812) and, unlike the shipped set, this MFD has a real jam point (5536) because its cubic coefficient is negative. Supplied 2026-08-01 to probe for a UE/SO gap. WARNING: speed_unit_scale is an INFERENCE, not a stated value -- see README.md in this directory before trusting any absolute travel time.",
+  "source": "UNKNOWN -- this parameter set appears nowhere in Qian et al. (2025). It is internally self-consistent (roots reproduce the stated 2812 and 5536 exactly) so it is a coherent calibration from a different source in a different convention. Provenance still to be confirmed with the dev who supplied it.",
+  "nb_region": 7,
+  "speed_unit_scale": 0.0002777777777777778,
+  "regions": {
+    "ave_trip_length": 4910.0,
+    "aMFD": -1.04e-8,
+    "bMFD": -8.2e-4,
+    "cMFD": 4.8582,
+    "dMFD": 0.9137,
+    "eMFD": 0.2903,
+    "fMFD": 1.1084,
+    "njamMFD": 5536.0,
+    "ncriticalMFD": 2812,
+    "travel_length_2border": 1300.0
+  }
+}
