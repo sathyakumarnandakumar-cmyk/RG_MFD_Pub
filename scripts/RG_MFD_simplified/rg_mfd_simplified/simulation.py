@@ -445,6 +445,25 @@ def pop_departures_due_at(queue, current_time, tol=DEPARTURE_TOL):
     return entering
 
 
+def build_observation(vehicle, region_accumulation, action_mask, cfg):
+    nb = cfg.nb_region
+    current_region = int(get_field_or_attribute(vehicle, "current_location_reg", get_field_or_attribute(vehicle, "current_location_sub", 1)))
+    destination_region = int(get_field_or_attribute(vehicle, "Destination_reg", get_field_or_attribute(vehicle, "Destination_sub", 1)))
+    current_region_one_hot = np.zeros(nb)
+    destination_region_one_hot = np.zeros(nb)
+    if 1 <= current_region <= nb:
+        current_region_one_hot[current_region - 1] = 1.0
+    if 1 <= destination_region <= nb:
+        destination_region_one_hot[destination_region - 1] = 1.0
+    density = np.array([region_accumulation[i] / cfg.region_data[i].njamMFD for i in range(nb)])
+    return np.concatenate([current_region_one_hot, destination_region_one_hot, density,
+                           np.asarray(action_mask, dtype=float).reshape(-1)])
+
+
+def observation_dimension(cfg):
+    return 4 * cfg.nb_region
+
+
 def advance_vehicles_and_route(active_vehicles, previous_time, current_time, current_speed,
                               region_data, current_sub_n, cfg, rng, rl_agent=None, use_rl_cav=False):
     current_speed = np.asarray(current_speed, dtype=float).reshape(-1)
@@ -497,8 +516,9 @@ def advance_vehicles_and_route(active_vehicles, previous_time, current_time, cur
         if int(vdata.origin_reg[idx]) != dest_reg and curr_reg != dest_reg:
             feasible = get_feasible_next_regions_for_vehicle(veh, cfg) if use_rl_cav else []
             if use_rl_cav and is_cav:
+                action_mask = build_action_mask(feasible, cfg.nb_region)
                 state = dict(network_state)
-                state["observation"] = None
+                state["observation"] = build_observation(veh, n_total_macro, action_mask, cfg)
                 chosen_region = choose_cav_next_region_with_agent(veh, state, feasible, rl_agent)
             elif use_rl_cav:
                 chosen_region = choose_hdv_next_region(veh, feasible, network_state)
@@ -578,9 +598,15 @@ def run_episode(data_dir, rl_agent=None, rng_seed=42, future_demand_scale=1.0,
 
         sub_n = active.count_vehicles_per_subregion()
         speed = np.array([max(_mfd_speed_from_accumulation(sd, sub_n[i], cfg), MIN_SPEED) for i, sd in enumerate(cfg.subregion_data)])
+        if use_rl_cav and hasattr(rl_agent, "observe_event_reward"):
+            rl_agent.observe_event_reward(-(current_time - prev_time) * len(active))
         active = advance_vehicles_and_route(active, prev_time, current_time, speed, cfg.region_data,
                                            sub_n, cfg, rng, rl_agent, use_rl_cav)
         done, active = active.split_off_completed_vehicles(current_time)
+        if use_rl_cav and hasattr(rl_agent, "observe_arrival"):
+            for vehicle in done:
+                if get_field_or_attribute(vehicle, "is_cav", False):
+                    rl_agent.observe_arrival(vehicle)
         completed.add_vehicles(done)
         count += 1
         if show_progress and _time.time() >= next_print:
@@ -588,5 +614,7 @@ def run_episode(data_dir, rl_agent=None, rng_seed=42, future_demand_scale=1.0,
                                 len(q_int) + len(q_ext), start)
             next_print = _time.time() + progress_interval_seconds
 
+    if use_rl_cav and hasattr(rl_agent, "end_episode"):
+        rl_agent.end_episode()
     return {"vehicles": completed, "total_vehicles": int(total), "events": count,
             "sim_time": float(current_time), "elapsed_seconds": _time.time() - start}

@@ -10,8 +10,8 @@ HERE = Path(__file__).resolve().parent
 import sys
 sys.path.insert(0, str(HERE))
 
-from rg_mfd.simulation import run_episode
-from rg_mfd.utils import get_field_or_attribute
+from rg_mfd_simplified.simulation import run_episode
+from rg_mfd_simplified.utils import get_field_or_attribute
 
 NETWORK = HERE / "networks" / "7_region_new"
 
