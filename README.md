@@ -64,6 +64,7 @@ Add `--max-events 1000` to any script for a quick smoke test. See
 - [`docs/IQL_IPPO_COMPARISON.md`](docs/IQL_IPPO_COMPARISON.md): value-based vs policy-gradient training.
 - [`docs/mfd_physics_and_logging.md`](docs/mfd_physics_and_logging.md): MFD physics and what the simulation logs.
 - [`docs/DEMAND_SCALING_AND_CRITICAL_ACCUMULATION.md`](docs/DEMAND_SCALING_AND_CRITICAL_ACCUMULATION.md): how demand scaling relates to critical accumulation.
+- [`docs/SIMULATION_FLOWCHART.md`](docs/SIMULATION_FLOWCHART.md) and [`docs/simplified_flowchart.md`](docs/simplified_flowchart.md): flowcharts of the simulation engine.
 - [`docs/HOW_TO_TRAIN.md`](docs/HOW_TO_TRAIN.md): training flags, behaviour profiles and mechanics.
 - [`docs/UE-SO_GAP_Report.md`](docs/UE-SO_GAP_Report.md): the user-equilibrium vs system-optimal gap.
 
