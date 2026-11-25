@@ -44,6 +44,8 @@ whether a learned routing policy for the CAVs can beat plain shortest-path (Dijk
 
 ## Quick start (simplified package)
 
+Full install and usage notes are in [`TECHNICAL_README.md`](TECHNICAL_README.md).
+
 ```bash
 cd scripts/RG_MFD_simplified
 pip install -r requirements.txt
