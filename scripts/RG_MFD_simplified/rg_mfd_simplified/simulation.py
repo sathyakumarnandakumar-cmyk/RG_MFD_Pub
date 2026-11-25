@@ -607,7 +607,7 @@ def run_episode(data_dir, rl_agent=None, rng_seed=42, future_demand_scale=1.0,
             for vehicle in done:
                 if get_field_or_attribute(vehicle, "is_cav", False):
                     rl_agent.observe_arrival(vehicle)
-        completed.add_vehicles(done)
+        completed.extend(done)
         count += 1
         if show_progress and _time.time() >= next_print:
             _print_simulation_progress(count, current_time, len(completed), total, len(active),

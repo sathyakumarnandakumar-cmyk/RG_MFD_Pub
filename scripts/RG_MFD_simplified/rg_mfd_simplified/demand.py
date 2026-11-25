@@ -49,7 +49,7 @@ def create_departure_times(Q_S, nb_subregion: int = 7, t_plant: float = 0.0, tfi
         for j in range(len(t) - 1):
             n_vehs = number_vehs[h, j]
             if n_vehs > 0:
-                od_times.add_vehicles(t[j] + d_t * rng.random(n_vehs))
+                od_times.extend(t[j] + d_t * rng.random(n_vehs))
         o = h // nb_subregion
         d = h % nb_subregion
         departure_t_Rij[o][d] = np.sort(np.asarray(od_times, dtype=float))

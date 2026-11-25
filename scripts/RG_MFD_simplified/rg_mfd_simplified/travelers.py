@@ -164,11 +164,11 @@ def build_vehicle_records_from_demand(
     if flag_init_acc == 1:
         for m in range(1, cfg.nb_subregion + 1):
             count = int(round(n_sub_total[m - 1])) if m - 1 < n_sub_total.size else 0
-            generated_destination.add_vehicles([m] * max(0, count))
+            generated_destination.extend([m] * max(0, count))
         rng.shuffle(generated_destination)
         if len(generated_destination) < nb_vehs:
             fallback_dest = des_sub if des_sub > 0 else ori_sub
-            generated_destination.add_vehicles([fallback_dest] * (nb_vehs - len(generated_destination)))
+            generated_destination.extend([fallback_dest] * (nb_vehs - len(generated_destination)))
 
     ori_reg = int(cfg.sub2reg[ori_sub - 1])
     travelers = []
@@ -247,16 +247,16 @@ def build_vehicle_lists(Q_S, n_sub_initial, V_n_sub, subregion_data, flag_change
     demand_rii_all = []
     demand_rij_all = []
     for w in range(1, cfg.nb_subregion + 1):
-        init_all.add_vehicles(
+        init_all.extend(
             build_vehicle_records_from_demand(w, 0, 1, 0, n_sub_initial[w - 1], departure_t_Rij[w - 1][w - 1], V_n_sub, n_sub_initial, subregion_data, cfg, rng)
         )
         for v in range(1, cfg.nb_subregion + 1):
             deps = departure_t_Rij[w - 1][v - 1]
             travelers = build_vehicle_records_from_demand(w, v, 2, 1 if w == v else 2, len(deps), deps, V_n_sub, n_sub_initial, subregion_data, cfg, rng)
             if w == v:
-                demand_rii_all.add_vehicles(travelers)
+                demand_rii_all.extend(travelers)
             else:
-                demand_rij_all.add_vehicles(travelers)
+                demand_rij_all.extend(travelers)
     for i, veh in enumerate(init_all, start=1):
         veh.veh_id = i
     for i, veh in enumerate(demand_rii_all, start=1):

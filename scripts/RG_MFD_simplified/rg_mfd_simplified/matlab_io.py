@@ -74,7 +74,7 @@ def find_data_file_path(name: str, data_dir: str | Path | None = None, package_f
     candidates = []
     if data_dir is not None:
         candidates.append(Path(data_dir).expanduser())
-    candidates.add_vehicles(candidate_data_directories(package_file))
+    candidates.extend(candidate_data_directories(package_file))
 
 
     warn_fallback = data_dir is not None and not (Path(data_dir).expanduser() / name).exists()
