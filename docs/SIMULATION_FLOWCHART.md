@@ -1,139 +1,170 @@
-# Simulation engine flowchart
+# Codebase flowchart
 
-This document shows how data moves through the event loop of the simulation engine. Function names
-are those of `scripts/RG_MFD_simplified/rg_mfd_simplified/`. Symbols follow Chapters 3 and 4 of the
-report (`RG_MFD_Report_2026-11-24.pdf`). A shorter version is in
-[`simplified_flowchart.md`](simplified_flowchart.md).
+Technical view of the simulation engine: which function is called, in which order, what it does, and
+what it passes on. Names are those of `scripts/RG_MFD_simplified/`. The mathematical view of the same
+loop, without function names, is in [`simplified_flowchart.md`](simplified_flowchart.md).
 
-## 1. Main event loop
+Files: `simulation.py`, `routing.py`, `path_choice.py`, `mfd.py`, `demand.py`, `travelers.py` are in
+`rg_mfd_simplified/`. `iql_agent.py` and `ppo_agent.py` are in the package root.
 
-Time does not advance in fixed steps. Each pass of the loop jumps to the next event: a departure or
-a vehicle finishing a leg in a region.
-
-```mermaid
-flowchart TD
-    A["Setup<br/>create_od_demand_matrix, build_vehicle_lists<br/>as_active_vehicles, build_departure_queue"]
-    B{"Active or Waiting<br/>not empty?"}
-    B2{"events = max_events?"}
-    C["Step 1: next event time<br/>next_departure_time, next_region_arrival_times_after<br/>t' = min(t_arr_k, t_dep_k)<br/>dt = t' - t"]
-    D["Step 2: admit departures<br/>pop_departures_due_at, add_vehicles<br/>Waiting to Active"]
-    E["Step 3: measure the network<br/>count_vehicles_per_subregion gives n_i<br/>_mfd_speed_from_accumulation gives v_i"]
-    F["Reward to agent<br/>observe_event_reward<br/>R = - dt * N_active"]
-    G["Step 4: advance_vehicles_and_route<br/>see Section 2 and Figure 2"]
-    H["Step 5: remove finished vehicles<br/>split_off_completed_vehicles<br/>Active to Completed"]
-    I["Arrival to agent<br/>observe_arrival(k) for each finished CAV"]
-    J["End of episode<br/>end_episode<br/>return Completed, accumulation history"]
-
-    A -->|"Active, Waiting"| B
-    B -->|"yes"| B2
-    B -->|"no"| J
-    B2 -->|"no"| C
-    B2 -->|"yes: stop, unfinished trips are not completed"| J
-    C -->|"t, dt"| D
-    D -->|"Active"| E
-    E -->|"n_i, v_i"| F
-    F --> G
-    E -->|"n_i, v_i, dt"| G
-    G -->|"L_rem, t_arr, r(k), route"| H
-    H --> I
-    I -->|"Active"| B
-```
-
-## 2. Step 4 in detail: advance_vehicles_and_route
-
-Costs are rebuilt once per event, before any vehicle is asked for a decision. Then every active
-vehicle moves, and only the vehicles whose leg has just ended make a routing decision.
+## 1. `run_episode`: setup and event loop
 
 ```mermaid
 flowchart TD
-    A["Cost tables<br/>build_region_cost_matrix<br/>T_i = n_i / g_i,  C_ij = T_i + T_j"]
-    B["Shortest paths<br/>compute_dijkstra_routes<br/>Theta for every pair (i, j)"]
-    C["Move vehicles<br/>recalculate_remaining_distance<br/>L_rem = max(0, L_rem - v_r(k) * dt)"]
-    D{"L_rem <= eps_arr<br/>for vehicle k?"}
-    E["Routing decision at boundary<br/>see Figure 2"]
-    F["Reschedule all active vehicles<br/>update_next_arrival_times<br/>t_arr = t + L_rem / max(v, v_min)"]
+    S1["<b>build_simulation_config</b> (config.py)<br/>reads mfd.json, builds region graph and parameters"]
+    S2["<b>create_od_demand_matrix</b> (demand.py)<br/>builds the origin-destination demand Q"]
+    S3["<b>load_mat_file</b> (matlab_io.py)<br/>loads initial accumulation xInit"]
+    S4["<b>build_vehicle_lists</b> (travelers.py)<br/>creates vehicles with origin, destination, departure time, route"]
+    S5["<b>as_active_vehicles</b> (simulation.py)<br/>wraps the vehicles on the road at t = 0 in an ActiveVehicles store"]
+    S6["<b>build_departure_queue</b> (simulation.py)<br/>sorts not-yet-departed vehicles by departure time"]
+    L0{"active or queues<br/>not empty, and<br/>events below max_events?"}
+    L1["<b>next_departure_time</b> (simulation.py)<br/>earliest departure in a queue"]
+    L2["<b>next_region_arrival_times_after</b> (ActiveVehicles)<br/>earliest finish of a current leg"]
+    L3["<b>pop_departures_due_at</b> then <b>add_vehicles</b><br/>moves vehicles departing now into the active store"]
+    L4["<b>count_vehicles_per_subregion</b> (ActiveVehicles)<br/>counts active vehicles per region, gives n"]
+    L5["<b>_mfd_speed_from_accumulation</b> (simulation.py)<br/>speed of each region from its count, floored at MIN_SPEED"]
+    L6["<b>observe_event_reward</b> (agent)<br/>receives - dt * active vehicles"]
+    L7["<b>advance_vehicles_and_route</b> (simulation.py)<br/>moves vehicles and re-routes those at a boundary (Section 2)"]
+    L8["<b>split_off_completed_vehicles</b> (ActiveVehicles)<br/>separates vehicles that reached their destination"]
+    L9["<b>observe_arrival</b> (agent)<br/>called for each finished CAV"]
+    E1["<b>end_episode</b> (agent)<br/>closes open transitions, PPO updates here"]
+    E2["returns vehicles, total_vehicles, events, sim_time"]
 
-    A -->|"C"| B
-    B -->|"Theta"| C
-    C -->|"L_rem"| D
-    D -->|"yes: k"| E
-    D -->|"no"| F
-    E -->|"h, new route, new L_rem"| F
+    S1 --> S2 --> S3 --> S4 --> S5 --> S6 --> L0
+    S4 -->|"vehicle lists"| S5
+    L0 -->|"yes"| L1
+    L0 -->|"no"| E1
+    L1 -->|"t_int, t_ext"| L2
+    L2 -->|"t_next = min of the three times"| L3
+    L3 -->|"active store"| L4
+    L4 -->|"sub_n"| L5
+    L5 -->|"speed"| L6
+    L6 --> L7
+    L7 -->|"updated active store"| L8
+    L8 -->|"done, active"| L9
+    L9 --> L0
+    E1 --> E2
 ```
 
-## 3. Routing decision at a region boundary
+## 2. `advance_vehicles_and_route`
 
-Applied to each vehicle `k` whose leg has ended. HDVs follow the shortest path. CAVs ask the agent.
-If no agent is given (the baseline run), every vehicle follows the shortest path.
+Called once per event. It first prices the network, then moves every vehicle, then decides routes for
+the vehicles whose leg has ended.
 
 ```mermaid
 flowchart TD
-    A{"r(k) = Dest_k?"}
-    B["mark_arrived_at_destination"]
-    C["Feasible set F<br/>get_feasible_next_regions_for_vehicle<br/>1. adjacent regions of r(k)<br/>2. remove regions already visited (no-revisit rule)<br/>3. keep regions from which Dest_k is still reachable<br/>4. if none is left, drop rule 2"]
-    D{"size of F"}
-    E["h = the only element of F"]
-    F{"vehicle k is a CAV<br/>and an agent is given?"}
-    G["Shortest-path routing: choose_hdv_next_region<br/>h is drawn from the path probabilities p over Theta<br/>p = 1 for the second region of Theta, so h = Theta_2<br/>if h is not in F, h = the cheapest region in F"]
-    H["CAV: build_observation gives S<br/>choose_cav_next_region_with_agent<br/>agent.select_action(S, F) gives h"]
-    I["Set route toward h<br/>replace_remaining_route<br/>r(k) = h<br/>new leg length L_rem for each region on the route:<br/>l_j if j is a transit region<br/>u * l_j if j = Dest_k, u drawn from U(0,1)"]
+    A1["<b>as_active_vehicles</b><br/>makes sure the vehicle arrays are current"]
+    A2["<b>build_region_cost_matrix</b> (routing.py)<br/>edge cost between adjacent regions, inf elsewhere"]
+    A3["<b>compute_region_travel_times</b> (routing.py)<br/>travel time of each region at its count"]
+    A4["<b>compute_region_production_and_travel_times</b> (mfd.py)<br/>MFD production and travel time of one region"]
+    A5["<b>compute_dijkstra_routes</b> (routing.py)<br/>shortest path for every pair of regions"]
+    A6["<b>recalculate_remaining_distance</b> then <b>store_remaining_distance</b><br/>subtracts speed * dt from each vehicle's remaining leg"]
+    A7["<b>sync_remaining_distance_on_arrival</b><br/>records the finished leg for vehicles whose leg ended"]
+    A8{"vehicle is at<br/>its destination?"}
+    A9["<b>mark_arrived_at_destination</b><br/>sets remaining distance to 0, advances the leg counter"]
+    A10["routing decision for this vehicle (Section 3)"]
+    A11["<b>update_next_arrival_times</b> (ActiveVehicles)<br/>next arrival = t + remaining distance / speed, for all active vehicles"]
 
-    A -->|"yes"| B
-    A -->|"no"| C
-    C -->|"F"| D
-    D -->|"1"| E
-    D -->|"2 or more"| F
-    F -->|"no: Theta, C, F"| G
-    F -->|"yes: n_i, Dest_k, F"| H
-    E -->|"h"| I
-    G -->|"h"| I
-    H -->|"h"| I
+    A1 --> A2
+    A2 --> A3 --> A4
+    A4 -->|"travel time per region"| A2
+    A2 -->|"cost matrix"| A5
+    A5 -->|"paths, probabilities"| A6
+    A6 -->|"remaining distance"| A7
+    A7 --> A8
+    A8 -->|"yes"| A9
+    A8 -->|"no"| A10
+    A9 --> A11
+    A10 -->|"new route and leg lengths"| A11
 ```
 
-If `F` is empty, no region is chosen and the vehicle is routed straight toward its destination.
+## 3. Routing decision for one vehicle
 
-## 4. Variables
+```mermaid
+flowchart TD
+    B1["<b>get_feasible_next_regions_for_vehicle</b> (path_choice.py)<br/>reads the vehicle's region, destination and visited regions"]
+    B2["<b>get_feasible_next_regions_from_region</b> (path_choice.py)<br/>neighbours, minus visited regions, that can still reach the destination"]
+    B3["<b>_can_reach_destination</b> (path_choice.py)<br/>breadth-first search avoiding blocked regions"]
+    B4{"number of<br/>feasible regions"}
+    B5["the only feasible region is chosen"]
+    B6{"CAV and<br/>agent given?"}
+    B7["<b>build_action_mask</b> (path_choice.py)<br/>0/1 vector over regions, 1 = feasible"]
+    B8["<b>build_observation</b> (simulation.py)<br/>28-number state S"]
+    B9["<b>choose_cav_next_region_with_agent</b> (path_choice.py)<br/>asks the agent through select_action(S, F)"]
+    B10["<b>_convert_action_to_region</b> (path_choice.py)<br/>accepts the agent's answer only if it is feasible"]
+    B11["<b>_best_feasible_by_travel_time</b> (path_choice.py)<br/>fallback: cheapest feasible region using the cost matrix"]
+    B12["<b>choose_hdv_next_region</b> (path_choice.py)<br/>samples the next region from the shortest-path probabilities"]
+    B13["<b>_subregion_chain_to_region_boundary</b> (agent run) or<br/><b>_subregion_chain_to_destination</b> (baseline run)<br/>cheapest chain of regions toward the chosen region"]
+    B14["<b>_subregion_chain_by_bfs</b> (simulation.py)<br/>fallback chain when no target region exists"]
+    B15["<b>replace_remaining_route</b> (ActiveVehicles)<br/>writes the new route, leg lengths, entry time and history"]
 
-| Symbol | Name in code | Meaning | Units |
-|---|---|---|---|
-| $t$, $\Delta t$ | `current_time`, `prev_time` | Simulation time and the time since the previous event | s |
-| $t_k^{dep}$ | departure queue entry | Departure time of vehicle $k$ | s |
-| $t_k^{arr}$ | next arrival time | Time vehicle $k$ is expected to finish its current leg | s |
-| $n_i$ | `sub_n[i]` | Accumulation of region $i$ (vehicles inside) | veh |
-| $v_i$ | `speed[i]` | Speed in region $i$, $v_i = \max\big(l_i(\delta_1 n_i^2 + \delta_2 n_i + \delta_3)\,\varphi(\rho)\,\sigma,\ v_{min}\big)$ | m/s |
-| $g_i$ | production over trip length | Trip completion rate of region $i$ | veh/s |
-| $T_i$ | region travel time | Average travel time, $T_i = n_i / g_i$ | s |
-| $C_{ij}$ | cost matrix | Edge cost, $C_{ij} = T_i + T_j$ if regions $i$ and $j$ are adjacent, otherwise $\infty$ | s |
-| $\Theta$ | shortest path | Sequence of regions on the cheapest path over $C$ | regions |
-| $L_k^{rem}$ | remaining distance | Distance vehicle $k$ still has to cover on its current leg | m |
-| $\varepsilon_{arr}$ | `ARRIVAL_TOL` | A leg counts as finished once $L_k^{rem} \le \varepsilon_{arr}$ | m |
-| $v_{min}$ | `MIN_SPEED` | Speed floor, 0.5 m/s | m/s |
-| $r(k)$ | current region | Region vehicle $k$ currently occupies | region index |
-| $\mathit{Dest}_k$ | destination region | Destination of vehicle $k$ | region index |
-| $F$ | feasible regions | Legal next regions for vehicle $k$: adjacent, not yet visited, and from which $\mathit{Dest}_k$ is still reachable. If that leaves none, the not-yet-visited condition is dropped | set |
-| $l_j$ | region trip length | Mean distance travelled when crossing region $j$ | m |
-| $u$ | random fraction | Fraction of $l_j$ travelled in the destination region, $u \sim U(0,1)$ | none |
-| $S$ | `observation` | 28-dimensional CAV state: current region (7), destination (7), $n_i / n_{max,i}$ (7), action mask (7) | none |
-| $h$ | chosen region | Next region selected for vehicle $k$ | region index |
-| $R$ | event reward | Reward passed to the agent after each event, $-\Delta t \cdot N_{active}$ | veh·s |
-| $\varphi(\rho)$, $\sigma$ | penetration factor, speed scale | CAV-share correction and unit scale of the MFD | none |
+    B1 --> B2 --> B3
+    B3 -->|"feasible list F"| B4
+    B4 -->|"1"| B5
+    B4 -->|"2 or more"| B6
+    B6 -->|"yes"| B7 --> B8 --> B9
+    B9 -->|"action"| B10
+    B10 -->|"not feasible"| B11
+    B6 -->|"no"| B12
+    B5 -->|"next region"| B13
+    B10 -->|"next region"| B13
+    B11 -->|"next region"| B13
+    B12 -->|"next region"| B13
+    B13 -->|"chain"| B15
+    B13 -.->|"no target"| B14
+    B14 -->|"chain"| B15
+```
 
-## 5. Functions
+## 4. Function reference
 
-| Function | File | Receives | Returns |
-|---|---|---|---|
-| `run_episode` | `simulation.py` | data directory, agent, seed, demand scale | Completed vehicles, event count, elapsed time |
-| `create_od_demand_matrix` | `demand.py` | configuration | OD demand matrix |
-| `build_vehicle_lists` | `travelers.py` | demand, initial accumulation, speeds | Initial vehicles and the two departure lists |
-| `build_departure_queue` | `simulation.py` | vehicle list | Vehicles sorted by $t^{dep}$ |
-| `next_departure_time` | `simulation.py` | queue, $t$ | Next departure time |
-| `pop_departures_due_at` | `simulation.py` | queue, $t$ | Vehicles departing at $t$ |
-| `count_vehicles_per_subregion` | `simulation.py` | active vehicles | $n_i$ |
-| `build_region_cost_matrix` | `routing.py` | $n_i$, region parameters | $C$ |
-| `compute_dijkstra_routes` | `routing.py` | adjacency, $n_i$, $C$ | Shortest paths $\Theta$ per pair |
-| `advance_vehicles_and_route` | `simulation.py` | active vehicles, $t$, $\Delta t$, $v_i$, $n_i$ | Updated active vehicles |
-| `get_feasible_next_regions_for_vehicle` | `path_choice.py` | vehicle, visited regions | $F$ |
-| `choose_hdv_next_region` | `path_choice.py` | vehicle, $F$, paths | $h$ |
-| `build_observation` | `simulation.py` | vehicle, $n_i$, action mask | $S$ |
-| `choose_cav_next_region_with_agent` | `path_choice.py` | vehicle, $S$, $F$, agent | $h$ |
-| `split_off_completed_vehicles` | `simulation.py` | active vehicles, $t$ | Completed vehicles, remaining active vehicles |
+| Function | File | What it does | Receives | Returns |
+|---|---|---|---|---|
+| `run_episode` | `simulation.py` | Runs one episode from setup to the last vehicle | data directory, agent, seed, demand scale, max events | vehicles, total_vehicles, events, sim_time |
+| `build_simulation_config` | `config/config.py` | Builds the configuration: region graph, MFD parameters, penetration | network directory | `SimulationConfig` |
+| `create_od_demand_matrix` | `demand.py` | Builds the origin-destination demand | configuration, data directory | demand matrix |
+| `load_mat_file` | `matlab_io.py` | Reads a `.mat` input file | path | dictionary of arrays |
+| `build_vehicle_lists` | `travelers.py` | Creates vehicles and splits them into initial, internal and external departures | demand, initial accumulation, speeds | three vehicle lists |
+| `as_active_vehicles` | `simulation.py` | Wraps vehicle records in the `ActiveVehicles` store | vehicle list | `ActiveVehicles` |
+| `build_departure_queue` | `simulation.py` | Sorts vehicles by departure time | vehicle list | queue |
+| `next_departure_time` | `simulation.py` | Earliest departure still in a queue | queue, time | time |
+| `pop_departures_due_at` | `simulation.py` | Removes and returns vehicles departing at the current time | queue, time | vehicles |
+| `ActiveVehicles.add_vehicles` | `simulation.py` | Appends departing vehicles to the active store | vehicles | none |
+| `ActiveVehicles.next_region_arrival_times_after` | `simulation.py` | Next leg-finish times later than now | time | array of times |
+| `ActiveVehicles.count_vehicles_per_subregion` | `simulation.py` | Counts active vehicles per region | none | array $n_i$ |
+| `_mfd_speed_from_accumulation` | `simulation.py` | Region speed from accumulation through the MFD | region parameters, count | speed |
+| `compute_cav_penetration_factor` | `mfd.py` | Penetration factor $\varphi(\rho)$ | $\delta_4, \delta_5, \delta_6$, CAV share | factor |
+| `advance_vehicles_and_route` | `simulation.py` | One event: price network, move vehicles, route those at a boundary | active store, times, speeds, counts, agent | updated active store |
+| `build_region_cost_matrix` | `routing.py` | Edge cost $C_{ij} = T_i + T_j$ for adjacent regions, infinity otherwise | adjacency, counts | matrix |
+| `compute_region_travel_times` | `routing.py` | Average travel time $T_i$ of every region | counts, region parameters | array |
+| `compute_region_production_and_travel_times` | `mfd.py` | Production, average and system-optimal travel time of one region | count, parameters | three numbers |
+| `_mfd_speed_kernel` | `mfd.py` | Compiled numeric kernel behind the line above | count, coefficients | numbers |
+| `compute_dijkstra_routes` | `routing.py` | Shortest path for every pair of regions | adjacency, counts | paths, probabilities |
+| `_single_source_dijkstra` | `routing.py` | Dijkstra from one region | cost matrix, source | distances, parents |
+| `_reconstruct_path` | `routing.py` | Builds the path from the parent array | parents, source, target | list of regions |
+| `shortest_path_and_cost` | `routing.py` | Path and cost between two regions | cost matrix, source, target | path, cost |
+| `choose_region_path` | `routing.py` | Picks a path for a vehicle in a baseline run | paths, probabilities | path |
+| `ActiveVehicles.recalculate_remaining_distance` | `simulation.py` | Remaining leg distance after moving for $\Delta t$ | speeds, dt | array |
+| `ActiveVehicles.store_remaining_distance` | `simulation.py` | Writes the new remaining distances for active vehicles | array, mask | none |
+| `ActiveVehicles.sync_remaining_distance_on_arrival` | `simulation.py` | Stores the finished leg's remainder in the vehicle record | vehicle index | none |
+| `ActiveVehicles.mark_arrived_at_destination` | `simulation.py` | Closes the last leg and advances the leg counter | vehicle index | none |
+| `get_feasible_next_regions_for_vehicle` | `path_choice.py` | Feasible set $F$ for a vehicle | vehicle, config | list of regions |
+| `get_feasible_next_regions_from_region` | `path_choice.py` | Feasible set from a region, destination and blocked regions | region, destination, blocked | list of regions |
+| `_can_reach_destination` | `path_choice.py` | Reachability test avoiding blocked regions | start, destination, graph, blocked | true or false |
+| `build_action_mask` | `path_choice.py` | 0/1 vector marking feasible regions | feasible list, region count | array |
+| `build_observation` | `simulation.py` | The 28-number state $S$ | vehicle, counts, mask, config | array |
+| `choose_cav_next_region_with_agent` | `path_choice.py` | Next region for a CAV from the agent, with a cost-based fallback | vehicle, state, feasible, agent | region |
+| `_ask_agent_for_action` | `path_choice.py` | Calls `select_action` on the agent | agent, vehicle, state, feasible, mask | action |
+| `_convert_action_to_region` | `path_choice.py` | Checks the action is a feasible region | action, feasible | region or none |
+| `_best_feasible_by_travel_time` | `path_choice.py` | Cheapest feasible region by edge cost plus remaining shortest path | vehicle, feasible, state | region |
+| `choose_hdv_next_region` | `path_choice.py` | Next region from the shortest-path probabilities | vehicle, feasible, network state | region |
+| `_sample_from_probabilities` | `path_choice.py` | Draws a region from probabilities | feasible, probabilities, random state | region |
+| `_subregion_chain_to_region_boundary` | `simulation.py` | Cheapest chain of regions to the boundary of the chosen region | position, destination, target, speeds | chain |
+| `_subregion_chain_to_destination` | `simulation.py` | Cheapest chain of regions to the destination, leaving by the chosen region | position, destination, target, speeds | chain |
+| `_subregion_chain_by_bfs` | `simulation.py` | Breadth-first chain between two regions | start, end, adjacency | chain |
+| `ActiveVehicles.replace_remaining_route` | `simulation.py` | Replaces the rest of the route and updates the vehicle's history | index, chain, leg lengths, time | none |
+| `ActiveVehicles.update_next_arrival_times` | `simulation.py` | Next arrival time for all active vehicles | speeds, time | none |
+| `ActiveVehicles.split_off_completed_vehicles` | `simulation.py` | Separates vehicles that finished their route | time | completed, still active |
+| `select_action` | `iql_agent.py`, `ppo_agent.py` | Agent chooses the next region and opens a transition | vehicle, state, feasible, mask | region |
+| `observe_event_reward` | agent | Adds the event reward to every open transition | reward | none |
+| `observe_arrival` | agent | Closes the transition of a finished CAV | vehicle | none |
+| `end_episode` | agent | Discards unfinished transitions, PPO updates here | none | none |
