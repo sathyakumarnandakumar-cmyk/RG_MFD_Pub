@@ -11,7 +11,7 @@ sys.path.insert(0, str(HERE))
 from config.config import build_simulation_config
 from rg_mfd_simplified.simulation import observation_dimension, run_episode
 from rg_mfd_simplified.utils import get_field_or_attribute
-from rl_agent import IQLAgent
+from iql_agent import IQLAgent
 
 NETWORK = HERE / "networks" / "7_region_new"
 
