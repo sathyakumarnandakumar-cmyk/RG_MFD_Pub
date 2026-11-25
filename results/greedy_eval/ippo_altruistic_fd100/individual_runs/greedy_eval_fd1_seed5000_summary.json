@@ -1,0 +1,16 @@
+{
+  "experiment_id": "ippo_altruistic_fd100",
+  "algorithm": "ippo_torchrl",
+  "seed": 5000,
+  "demand": 1.0,
+  "cav_penetration": 0.6,
+  "max_events": 175000,
+  "cav_mean_tt_s": 1327.31,
+  "cav_median_tt_s": 1238.31,
+  "cav_n": 18205,
+  "hdv_mean_tt_s": 1217.32,
+  "hdv_median_tt_s": 1219.68,
+  "hdv_n": 12135,
+  "cav_over_hdv_ratio": 1.09,
+  "gap_vs_hdv_s": 110.0
+}

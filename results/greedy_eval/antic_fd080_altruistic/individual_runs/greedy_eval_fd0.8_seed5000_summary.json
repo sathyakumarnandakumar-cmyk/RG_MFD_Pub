@@ -1,0 +1,15 @@
+{
+  "experiment_id": "antic_fd080_altruistic",
+  "seed": 5000,
+  "demand": 0.8,
+  "cav_penetration": 0.6,
+  "max_events": 175000,
+  "cav_mean_tt_s": 7285.99,
+  "cav_median_tt_s": 8376.15,
+  "cav_n": 15075,
+  "hdv_mean_tt_s": 2012.39,
+  "hdv_median_tt_s": 1223.74,
+  "hdv_n": 10052,
+  "cav_over_hdv_ratio": 3.621,
+  "gap_vs_hdv_s": 5273.6
+}

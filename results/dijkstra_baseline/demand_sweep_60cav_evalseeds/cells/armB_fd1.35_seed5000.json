@@ -1,0 +1,86 @@
+{
+  "arm": "B",
+  "arm_label": "routing-only control (rho=0.6 physics, everyone on Dijkstra)",
+  "mode": "nocontrol",
+  "control_arm": null,
+  "demand": 1.35,
+  "seed": 5000,
+  "network": "networks/7_region_new",
+  "mfd_profile": "7_region_new",
+  "cav_penetration_requested": 0.6,
+  "pen_factor_applied": 1.4869,
+  "pen_factor_effective_rho": 0.6,
+  "init_acc_scale": 0.3,
+  "ban_revisit": true,
+  "k_shortest_paths": false,
+  "hdv_all_or_nothing": false,
+  "events": 127722,
+  "truncated": false,
+  "completed_vehicles": 39558,
+  "total_vehicles": 39558,
+  "completion_rate": 1.0,
+  "clearing_time_s": 9120.9,
+  "tfinq_s": 3600.0,
+  "wall_seconds": 133.5,
+  "travel_time": {
+    "all": {
+      "n": 39558,
+      "mean_tt_s": 1934.41,
+      "median_tt_s": 1501.26,
+      "p95_tt_s": 5527.8,
+      "max_tt_s": 6841.84,
+      "total_tt_veh_h": 21255.9
+    },
+    "rij_only": {
+      "n": 30407,
+      "mean_tt_s": 2162.71,
+      "median_tt_s": 1687.57,
+      "p95_tt_s": 5672.14,
+      "max_tt_s": 6841.84,
+      "total_tt_veh_h": 18267.1
+    },
+    "uniformity_check": {
+      "cav_mean_tt_s": 1943.1,
+      "hdv_mean_tt_s": 1921.37,
+      "ratio": 1.0113,
+      "cav_n": 23735,
+      "hdv_n": 15823
+    }
+  },
+  "congestion": {
+    "peak_accumulation": 6275.0,
+    "peak_pct_of_critical": 223.2,
+    "peak_pct_of_jam": 113.3,
+    "n_critical": 2812.0,
+    "n_jam": 5536.0,
+    "sim_time_last_event_s": 9120.9,
+    "concentration_at_peak": 1.706,
+    "busiest_region_at_peak": 1,
+    "region_peaks": [
+      6275.0,
+      2877.0,
+      2039.0,
+      1946.0,
+      2506.0,
+      2459.0,
+      2883.0
+    ],
+    "frac_region_time_at_min_speed": 0.04765,
+    "frac_region_time_over_jam": 0.03792,
+    "frac_region_time_over_critical": 0.10125,
+    "min_speed_floor_m_s": 0.5
+  },
+  "breakdown": {
+    "stranded_vehicles": false,
+    "clearing_past_tfinq_mult": false,
+    "clearing_mult_used": 4.0,
+    "clearing_over_tfinq": 2.53,
+    "over_critical": true,
+    "over_jam_peak": true,
+    "min_speed_clamped": true,
+    "polynomial_negative": true,
+    "event_cap_hit": false,
+    "numerically_suspect": true,
+    "broken": true
+  }
+}

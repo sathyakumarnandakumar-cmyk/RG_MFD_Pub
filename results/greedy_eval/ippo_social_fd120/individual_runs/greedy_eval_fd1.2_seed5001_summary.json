@@ -1,0 +1,16 @@
+{
+  "experiment_id": "ippo_social_fd120",
+  "algorithm": "ippo_torchrl",
+  "seed": 5001,
+  "demand": 1.2,
+  "cav_penetration": 0.6,
+  "max_events": 175000,
+  "cav_mean_tt_s": 1333.98,
+  "cav_median_tt_s": 1330.67,
+  "cav_n": 21362,
+  "hdv_mean_tt_s": 1331.68,
+  "hdv_median_tt_s": 1328.77,
+  "hdv_n": 14237,
+  "cav_over_hdv_ratio": 1.002,
+  "gap_vs_hdv_s": 2.3
+}

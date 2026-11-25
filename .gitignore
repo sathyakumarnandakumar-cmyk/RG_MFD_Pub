@@ -1,0 +1,11 @@
+.venv/
+__pycache__/
+*.pyc
+.matplotlib_cache/
+results/**/*
+!results/**/
+!results/**/*.json
+!results/**/*.png
+!results/**/*.csv
+Results_7Reg_CAV60_NC_test1.mat
+figures/*

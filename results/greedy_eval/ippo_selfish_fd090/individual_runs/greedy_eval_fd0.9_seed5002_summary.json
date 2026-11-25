@@ -1,0 +1,16 @@
+{
+  "experiment_id": "ippo_selfish_fd090",
+  "algorithm": "ippo_torchrl",
+  "seed": 5002,
+  "demand": 0.9,
+  "cav_penetration": 0.6,
+  "max_events": 175000,
+  "cav_mean_tt_s": 1154.15,
+  "cav_median_tt_s": 1150.94,
+  "cav_n": 16649,
+  "hdv_mean_tt_s": 1156.39,
+  "hdv_median_tt_s": 1153.32,
+  "hdv_n": 11099,
+  "cav_over_hdv_ratio": 0.998,
+  "gap_vs_hdv_s": -2.2
+}

@@ -1,0 +1,17 @@
+{
+  "parent_experiment": "antic_fd080_altruistic",
+  "weights_path": "results/antic_fd080_altruistic/checkpoints/agent1.pt",
+  "demand": 0.8,
+  "cav_penetration": 0.6,
+  "max_events": 175000,
+  "ban_revisit": null,
+  "algorithm": "greedy_evaluation",
+  "n_seeds": 5,
+  "seeds": [
+    5000,
+    5001,
+    5002,
+    5003,
+    5004
+  ]
+}

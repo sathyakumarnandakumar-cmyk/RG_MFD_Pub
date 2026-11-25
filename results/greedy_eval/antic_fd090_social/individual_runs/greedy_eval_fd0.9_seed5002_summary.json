@@ -1,0 +1,15 @@
+{
+  "experiment_id": "antic_fd090_social",
+  "seed": 5002,
+  "demand": 0.9,
+  "cav_penetration": 0.6,
+  "max_events": 175000,
+  "cav_mean_tt_s": 7296.07,
+  "cav_median_tt_s": 7939.92,
+  "cav_n": 16649,
+  "hdv_mean_tt_s": 2935.01,
+  "hdv_median_tt_s": 1417.5,
+  "hdv_n": 11099,
+  "cav_over_hdv_ratio": 2.486,
+  "gap_vs_hdv_s": 4361.1
+}

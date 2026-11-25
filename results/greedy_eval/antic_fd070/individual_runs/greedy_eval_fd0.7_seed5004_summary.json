@@ -1,0 +1,15 @@
+{
+  "experiment_id": "antic_fd070",
+  "seed": 5004,
+  "demand": 0.7,
+  "cav_penetration": 0.6,
+  "max_events": 80000,
+  "cav_mean_tt_s": 1122.75,
+  "cav_median_tt_s": 1123.5,
+  "cav_n": 15736,
+  "hdv_mean_tt_s": 1126.58,
+  "hdv_median_tt_s": 1127.41,
+  "hdv_n": 10498,
+  "cav_over_hdv_ratio": 0.997,
+  "gap_vs_hdv_s": -3.8
+}

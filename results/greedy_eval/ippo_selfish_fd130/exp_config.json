@@ -1,0 +1,17 @@
+{
+  "parent_experiment": "ippo_selfish_fd130",
+  "weights_path": "results/ippo_selfish_fd130/checkpoints/agent1.pt",
+  "demand": 1.3,
+  "cav_penetration": 0.6,
+  "max_events": 175000,
+  "ban_revisit": null,
+  "algorithm": "ippo_greedy_evaluation",
+  "n_seeds": 5,
+  "seeds": [
+    5000,
+    5001,
+    5002,
+    5003,
+    5004
+  ]
+}

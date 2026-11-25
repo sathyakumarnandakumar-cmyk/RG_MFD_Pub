@@ -1,0 +1,90 @@
+{
+  "experiment_id": "ippo_altruistic_fd100",
+  "algorithm": "ippo_torchrl",
+  "demand": 1.0,
+  "cav_penetration": 0.6,
+  "max_events": 175000,
+  "n_seeds": 5,
+  "seeds": [
+    5000,
+    5001,
+    5002,
+    5003,
+    5004
+  ],
+  "cav_over_hdv_ratio": {
+    "mean": 1.091,
+    "std": 0.003,
+    "ci95_halfwidth": 0.003,
+    "min": 1.088,
+    "max": 1.095
+  },
+  "ratio_of_means": 1.091,
+  "cav_mean_tt_s": {
+    "mean": 1327.202,
+    "std": 5.311,
+    "ci95_halfwidth": 6.594
+  },
+  "hdv_mean_tt_s": {
+    "mean": 1216.968,
+    "std": 5.118,
+    "ci95_halfwidth": 6.354
+  },
+  "gap_vs_hdv_s": {
+    "mean": 110.22,
+    "std": 3.241,
+    "ci95_halfwidth": 4.025
+  },
+  "per_seed": [
+    {
+      "seed": 5000,
+      "cav_mean_tt_s": 1327.31,
+      "hdv_mean_tt_s": 1217.32,
+      "cav_over_hdv_ratio": 1.09,
+      "gap_vs_hdv_s": 110.0,
+      "cav_n": 18205,
+      "hdv_n": 12135
+    },
+    {
+      "seed": 5001,
+      "cav_mean_tt_s": 1331.24,
+      "hdv_mean_tt_s": 1222.32,
+      "cav_over_hdv_ratio": 1.089,
+      "gap_vs_hdv_s": 108.9,
+      "cav_n": 18205,
+      "hdv_n": 12135
+    },
+    {
+      "seed": 5002,
+      "cav_mean_tt_s": 1326.95,
+      "hdv_mean_tt_s": 1220.05,
+      "cav_over_hdv_ratio": 1.088,
+      "gap_vs_hdv_s": 106.9,
+      "cav_n": 18205,
+      "hdv_n": 12135
+    },
+    {
+      "seed": 5003,
+      "cav_mean_tt_s": 1318.59,
+      "hdv_mean_tt_s": 1208.84,
+      "cav_over_hdv_ratio": 1.091,
+      "gap_vs_hdv_s": 109.7,
+      "cav_n": 18205,
+      "hdv_n": 12135
+    },
+    {
+      "seed": 5004,
+      "cav_mean_tt_s": 1331.92,
+      "hdv_mean_tt_s": 1216.31,
+      "cav_over_hdv_ratio": 1.095,
+      "gap_vs_hdv_s": 115.6,
+      "cav_n": 18205,
+      "hdv_n": 12135
+    }
+  ],
+  "notes": [
+    "CAV/HDV ratio is PAIRED: CAV and HDV share the seed within each run, so the headline mean/CI is over per-seed ratios (seed-to-seed traffic variance mostly cancels). ratio_of_means is the unpaired cross-seed reference.",
+    "The greedy policy is deterministic (argmax over policy logits, no sampling); all spread here is env variance (demand draw + HDV logit routing), not policy noise.",
+    "CI is the t-based 95% interval half-width over n seeds."
+  ]
+}

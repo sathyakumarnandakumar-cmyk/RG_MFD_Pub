@@ -1,0 +1,15 @@
+{
+  "experiment_id": "iql_selfish_fd120",
+  "seed": 5001,
+  "demand": 1.2,
+  "cav_penetration": 0.6,
+  "max_events": 175000,
+  "cav_mean_tt_s": 9087.15,
+  "cav_median_tt_s": 11221.41,
+  "cav_n": 23656,
+  "hdv_mean_tt_s": 2187.98,
+  "hdv_median_tt_s": 1489.98,
+  "hdv_n": 15767,
+  "cav_over_hdv_ratio": 4.153,
+  "gap_vs_hdv_s": 6899.2
+}

@@ -1,0 +1,15 @@
+{
+  "experiment_id": "iql_collaborative_fd100",
+  "seed": 5001,
+  "demand": 1.0,
+  "cav_penetration": 0.6,
+  "max_events": 175000,
+  "cav_mean_tt_s": 8705.54,
+  "cav_median_tt_s": 11328.16,
+  "cav_n": 18205,
+  "hdv_mean_tt_s": 3293.92,
+  "hdv_median_tt_s": 1458.75,
+  "hdv_n": 12135,
+  "cav_over_hdv_ratio": 2.643,
+  "gap_vs_hdv_s": 5411.6
+}
